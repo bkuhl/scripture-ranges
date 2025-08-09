@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace BKuhl\BibleRanges\Interfaces;
+namespace BKuhl\ScriptureRanges\Interfaces;
 
 interface VerseInterface
 {

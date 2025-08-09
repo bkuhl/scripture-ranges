@@ -11,10 +11,10 @@ composer require bkuhl/scripture-ranges
 ## Quick Start
 
 ```php
-use BKuhl\BibleRanges\ScriptureRange;
-use BKuhl\BibleRanges\RangeCollection;
-use BKuhl\BibleRanges\Interfaces\BookInterface;
-use BKuhl\BibleRanges\Interfaces\VerseInterface;
+use BKuhl\ScriptureRanges\ScriptureRange;
+use BKuhl\ScriptureRanges\RangeCollection;
+use BKuhl\ScriptureRanges\Interfaces\BookInterface;
+use BKuhl\ScriptureRanges\Interfaces\VerseInterface;
 
 // Simple implementations for demonstration
 class GenesisBook implements BookInterface

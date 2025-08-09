@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace BKuhl\BibleRanges\Tests\Mocks;
+namespace BKuhl\ScriptureRanges\Tests\Mocks;
 
-use BKuhl\BibleRanges\Interfaces\BookInterface;
+use BKuhl\ScriptureRanges\Interfaces\BookInterface;
 
 class MockBook implements BookInterface
 {

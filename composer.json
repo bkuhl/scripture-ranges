@@ -19,12 +19,12 @@
     },
     "autoload": {
         "psr-4": {
-            "BKuhl\\BibleRanges\\": "src/"
+            "BKuhl\\ScriptureRanges\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "BKuhl\\BibleRanges\\Tests\\": "tests/"
+            "BKuhl\\ScriptureRanges\\Tests\\": "tests/"
         }
     },
     "scripts": {

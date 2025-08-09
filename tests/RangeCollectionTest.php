@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace BKuhl\BibleRanges\Tests;
+namespace BKuhl\ScriptureRanges\Tests;
 
-use BKuhl\BibleRanges\RangeCollection;
-use BKuhl\BibleRanges\ScriptureRange;
-use BKuhl\BibleRanges\Tests\Mocks\MockBook;
-use BKuhl\BibleRanges\Tests\Mocks\MockVerse;
+use BKuhl\ScriptureRanges\RangeCollection;
+use BKuhl\ScriptureRanges\ScriptureRange;
+use BKuhl\ScriptureRanges\Tests\Mocks\MockBook;
+use BKuhl\ScriptureRanges\Tests\Mocks\MockVerse;
 use PHPUnit\Framework\TestCase;
 
 class RangeCollectionTest extends TestCase

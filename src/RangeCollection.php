@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace BKuhl\BibleRanges;
+namespace BKuhl\ScriptureRanges;
 
-use BKuhl\BibleRanges\Interfaces\VerseInterface;
+use BKuhl\ScriptureRanges\Interfaces\VerseInterface;
 
 class RangeCollection
 {
