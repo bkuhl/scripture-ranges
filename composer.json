@@ -28,7 +28,7 @@
         }
     },
     "scripts": {
-        "test": "phpunit --no-coverage",
+        "test": "phpunit --no-coverage --no-logging",
         "test-coverage": "phpunit --coverage-html coverage"
     },
     "config": {
