@@ -1,6 +1,6 @@
 # Scripture Ranges
 
-A PHP library for handling scripture ranges with exclusions and JSON serialization. This package provides a clean, object-oriented interface for working with Bible verse ranges, checking if verses are within ranges, and managing exclusions. It uses interfaces for `Book` and `Verse` objects, allowing you to integrate with your own Bible data sources.
+A PHP library for handling scripture ranges with exclusions and JSON serialization. Create complex scripture ranges with a clean, fluent API.
 
 ## Installation
 
@@ -8,211 +8,76 @@ A PHP library for handling scripture ranges with exclusions and JSON serializati
 composer require bkuhl/scripture-ranges
 ```
 
-## Quick Start
+## Creating Ranges (Recommended)
+
+Use the `ScriptureRangeBuilder` for a clean, readable API:
 
 ```php
-use BKuhl\ScriptureRanges\ScriptureRange;
-use BKuhl\ScriptureRanges\RangeCollection;
-use BKuhl\ScriptureRanges\Interfaces\BookInterface;
-use BKuhl\ScriptureRanges\Interfaces\VerseInterface;
+use BKuhl\ScriptureRanges\ScriptureRangeBuilder;
 
-// Simple implementations for demonstration
-class GenesisBook implements BookInterface
+// Create multiple ranges with exclusions
+$builder = new ScriptureRangeBuilder([$myBookResolver]);
+$collection = $builder
+    ->with(BookEnum::JOHN, chapter: 3, verse: 1, toVerse: 36)
+    ->without(BookEnum::JOHN, chapter: 3, verse: 16, toVerse: 17)
+    ->without(BookEnum::JOHN, chapter: 3, verse: 22)
+    ->with('Matthew', chapter: 5, verse: 1, toVerse: 48)     // String book
+    ->without('Matthew', chapter: 5, verse: 10, toVerse: 15)
+    ->with(42, chapter: 2, verse: 8, toVerse: 20)           // Book by position
+    ->build(); // Returns RangeCollection
+
+// Single range with defaults
+$collection = $builder
+    ->with('John', chapter: 3)                              // Verse 1 to end of chapter
+    ->build();
+
+// Specific verse range
+$collection = $builder
+    ->with($johnBook, chapter: 3, verse: 16, toVerse: 17)
+    ->build();
+```
+
+## Book Resolvers
+
+To use flexible input types (strings, enums, integers), implement a `BookResolverInterface`:
+
+```php
+use BKuhl\ScriptureRanges\Interfaces\BookResolverInterface;
+
+class MyBookResolver implements BookResolverInterface
 {
-    public function name(): string 
-    { 
-        return 'Genesis'; 
-    }
-    
-    public function position(): int 
-    { 
-        return 1; 
-    }
-    
-    public function chapterVerseCount(int $chapter): int 
+    public function resolve(mixed $book): BookInterface
     {
-        return [1 => 31, 2 => 25, 3 => 24][$chapter] ?? 30;
+        if (is_string($book)) {
+            return $this->getBookFromString($book);
+        }
+        
+        if ($book instanceof MyBookEnum) {
+            return $this->getBookFromEnum($book);
+        }
+        
+        throw new InvalidArgumentException('Unable to resolve book');
     }
-}
 
-class LukeBook implements BookInterface
-{
-    public function name(): string 
-    { 
-        return 'Luke'; 
-    }
-    
-    public function position(): int 
-    { 
-        return 42; 
-    }
-    
-    public function chapterVerseCount(int $chapter): int 
+    public function canResolve(mixed $book): bool
     {
-        return [1 => 80, 2 => 52][$chapter] ?? 30;
+        return is_string($book) || $book instanceof MyBookEnum;
     }
 }
 
-class SimpleVerse implements VerseInterface
-{
-    public function number(): int 
-    { 
-        return 5; 
-    }
-    
-    public function chapterNumber(): int 
-    { 
-        return 2; 
-    }
-    
-    public function book(): BookInterface 
-    { 
-        return new GenesisBook(); 
-    }
-}
-
-// Create a book and range
-$genesis = new GenesisBook();
-$range = new ScriptureRange($genesis, 1, 3, 1, 15);
-
-// Check if a verse is in the range
-$verse = new SimpleVerse();
-echo $range->contains($verse); // true
-
-// Get the reference (concise format)
-echo $range->reference(); // "Genesis 1-3:15"
+// Use with builder
+$builder = new ScriptureRangeBuilder([$myResolver]);
 ```
 
-## Examples
-
-### Basic Range Operations
+## Working with Collections
 
 ```php
-// Create a range with exclusions
-$range = new ScriptureRange($genesis, 1, 3, 1, 31);
-$range->addExclusion(2, 2, 4, 7); // Exclude Genesis 2:4-7
+// Check if a verse is in any range
+echo $collection->contains($verse); // true/false
 
-// Check verse containment
-$verse1 = new SimpleVerse();
-$verse2 = new SimpleVerse();
+// Get formatted reference
+echo $collection->reference(); // "John 3:16-17, Matthew 5:1-12"
 
-echo $range->contains($verse1); // true
-echo $range->contains($verse2); // false (excluded)
-```
-
-### Range Collections
-
-```php
-$collection = new RangeCollection();
-
-// Add ranges from different books
-$genesisRange = new ScriptureRange($genesis, 1, 3, 1, 15);
-$luke = new LukeBook();
-$lukeRange = new ScriptureRange($luke, 1, 1, 1, 10);
-
-$collection->addRange($genesisRange);
-$collection->addRange($lukeRange);
-
-// Check if a verse is in any range in the collection
-$verse = new SimpleVerse();
-echo $collection->contains($verse); // true
-
-// Get a concise reference for the entire collection
-echo $collection->reference(); // "Genesis 1-3:15, Luke 1:10"
-```
-
-### JSON Serialization
-
-```php
-// Serialize a range to JSON
-$range = new ScriptureRange($genesis, 1, 3, 1, 15);
-$range->addExclusion(2, 2, 4, 7);
-
-$json = json_encode($range->toArray(), JSON_PRETTY_PRINT);
-echo $json;
-// Output:
-// {
-//     "start": {
-//         "book": 1,
-//         "chapter": 1
-//     },
-//     "end": {
-//         "book": 1,
-//         "chapter": 3,
-//         "verse": 15
-//     },
-//     "exclude": [
-//         {
-//             "start": {
-//                 "chapter": 2,
-//                 "verse": 4
-//             },
-//             "end": {
-//                 "chapter": 2,
-//                 "verse": 7
-//             }
-//         }
-//     ]
-// }
-
-// Serialize a collection
-$collection = new RangeCollection();
-$collection->addRange($range);
+// JSON serialization
 $json = $collection->toJson();
-```
-
-## API Reference
-
-### BookInterface
-
-```php
-interface BookInterface
-{
-    public function name(): string;
-    public function position(): int;
-    public function chapterVerseCount(int $chapter): int;
-}
-```
-
-### VerseInterface
-
-```php
-interface VerseInterface
-{
-    public function number(): int;
-    public function chapterNumber(): int;
-    public function book(): BookInterface;
-}
-```
-
-## JSON Format
-
-The JSON format uses a clean, compact structure:
-
-```json
-[
-    {
-        "start": {
-            "book": 1,
-            "chapter": 1
-        },
-        "end": {
-            "book": 1,
-            "chapter": 3,
-            "verse": 15
-        },
-        "exclude": [
-            {
-                "start": {
-                    "chapter": 2,
-                    "verse": 4
-                },
-                "end": {
-                    "chapter": 2,
-                    "verse": 7
-                }
-            }
-        ]
-    }
-]
 ```
