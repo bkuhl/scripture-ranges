@@ -1,11 +1,11 @@
-# Bible Ranges
+# Scripture Ranges
 
 A PHP library for handling scripture ranges with exclusions and JSON serialization. This package provides a clean, object-oriented interface for working with Bible verse ranges, checking if verses are within ranges, and managing exclusions. It uses interfaces for `Book` and `Verse` objects, allowing you to integrate with your own Bible data sources.
 
 ## Installation
 
 ```bash
-composer require bkuhl/bible-ranges
+composer require bkuhl/scripture-ranges
 ```
 
 ## Quick Start

@@ -1,5 +1,5 @@
 {
-    "name": "bkuhl/bible-ranges",
+    "name": "bkuhl/scripture-ranges",
     "description": "A PHP library for handling scripture ranges with exclusions and JSON serialization",
     "type": "library",
     "license": "MIT",
