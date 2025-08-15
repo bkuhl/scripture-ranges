@@ -72,12 +72,31 @@ $builder = new ScriptureRangeBuilder([$myResolver]);
 ## Working with Collections
 
 ```php
+// Create a collection with ID and name
+$collection = new RangeCollection('reading-plan-123', 'Daily Reading');
+
+// Or create without metadata
+$collection = new RangeCollection();
+
+// Set or update name and ID
+$collection->setName('Morning Reading');
+$collection->setId('morning-plan-456');
+
+// Get name and ID
+echo $collection->getName(); // "Morning Reading"
+echo $collection->getId();   // "morning-plan-456"
+
 // Check if a verse is in any range
 echo $collection->contains($verse); // true/false
 
 // Get formatted reference
 echo $collection->reference(); // "John 3:16-17, Matthew 5:1-12"
 
-// JSON serialization
+// JSON serialization includes name and ID
 $json = $collection->toJson();
+// {
+//   "name": "Morning Reading",
+//   "id": "morning-plan-456", 
+//   "ranges": [...]
+// }
 ```
