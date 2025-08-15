@@ -271,4 +271,99 @@ class ScriptureRangeBuilderTest extends TestCase
         
         $builder->with('john', chapter: 3, verse: 16);
     }
+
+    public function testWithChapterRange(): void
+    {
+        $builder = new ScriptureRangeBuilder([new TestBookResolver()]);
+        $chapterRange = \BKuhl\ScriptureRanges\ChapterRange::range(3, 5);
+        
+        $collection = $builder
+            ->with('john', $chapterRange)
+            ->build();
+        
+        $this->assertInstanceOf(RangeCollection::class, $collection);
+        $ranges = $collection->getRanges();
+        $this->assertCount(1, $ranges);
+        
+        $range = $ranges[0];
+        $this->assertEquals('John', $range->book()->name());
+        $this->assertEquals(3, $range->startChapter());
+        $this->assertEquals(5, $range->endChapter());
+        $this->assertEquals(1, $range->startVerse());
+        $this->assertEquals(47, $range->endVerse()); // MockBook::john() chapter 5 has 47 verses
+    }
+
+    public function testWithChapterRangeAndTraditionalSyntax(): void
+    {
+        $builder = new ScriptureRangeBuilder([new TestBookResolver()]);
+        $chapterRange = \BKuhl\ScriptureRanges\ChapterRange::range(1, 2);
+        
+        $collection = $builder
+            ->with('john', $chapterRange)                               // Full chapters 1-2
+            ->with('john', chapter: 3, verse: 16, toVerse: 17)         // Specific verses
+            ->build();
+        
+        $this->assertInstanceOf(RangeCollection::class, $collection);
+        $ranges = $collection->getRanges();
+        $this->assertCount(2, $ranges);
+        
+        // First range: chapters 1-2
+        $range1 = $ranges[0];
+        $this->assertEquals(1, $range1->startChapter());
+        $this->assertEquals(2, $range1->endChapter());
+        $this->assertEquals(1, $range1->startVerse());
+        $this->assertEquals(25, $range1->endVerse()); // MockBook::john() chapter 2 has 25 verses
+        
+        // Second range: chapter 3, verses 16-17
+        $range2 = $ranges[1];
+        $this->assertEquals(3, $range2->startChapter());
+        $this->assertEquals(3, $range2->endChapter());
+        $this->assertEquals(16, $range2->startVerse());
+        $this->assertEquals(17, $range2->endVerse());
+    }
+
+    public function testWithoutChapterRange(): void
+    {
+        $builder = new ScriptureRangeBuilder([new TestBookResolver()]);
+        $mainRange = \BKuhl\ScriptureRanges\ChapterRange::range(1, 5);
+        $exclusionRange = \BKuhl\ScriptureRanges\ChapterRange::range(3, 3);
+        
+        $collection = $builder
+            ->with('john', $mainRange)
+            ->without('john', $exclusionRange)
+            ->build();
+        
+        $ranges = $collection->getRanges();
+        $this->assertCount(1, $ranges);
+        
+        $range = $ranges[0];
+        $this->assertEquals(1, $range->startChapter());
+        $this->assertEquals(5, $range->endChapter());
+        
+        // Should have one exclusion for chapter 3
+        $exclusions = $range->exclusions();
+        $this->assertCount(1, $exclusions);
+        $this->assertEquals(3, $exclusions[0]['startChapter']);
+        $this->assertEquals(3, $exclusions[0]['endChapter']);
+        $this->assertEquals(1, $exclusions[0]['startVerse']);
+        $this->assertEquals(36, $exclusions[0]['endVerse']); // MockBook::john() chapter 3 has 36 verses
+    }
+
+    public function testChapterRangeSingleChapter(): void
+    {
+        $builder = new ScriptureRangeBuilder([new TestBookResolver()]);
+        $chapterRange = \BKuhl\ScriptureRanges\ChapterRange::range(3, 3);
+        
+        $collection = $builder
+            ->with('john', $chapterRange)
+            ->build();
+        
+        $ranges = $collection->getRanges();
+        $range = $ranges[0];
+        
+        $this->assertEquals(3, $range->startChapter());
+        $this->assertEquals(3, $range->endChapter());
+        $this->assertEquals(1, $range->startVerse());
+        $this->assertEquals(36, $range->endVerse()); // Full chapter 3
+    }
 }

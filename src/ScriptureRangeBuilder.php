@@ -35,18 +35,31 @@ class ScriptureRangeBuilder
 
     public function with(
         mixed $book, 
-        int $chapter, 
+        ChapterRange|int $chapter, 
+        ?int $chapterEnd = null,
         mixed $verse = null, 
         mixed $toVerse = null
     ): self {
         $bookInterface = $this->resolveBook($book);
-        $fromVerse = $this->resolveVerse($verse) ?? 1;
-        $toVerse = $this->resolveVerse($toVerse) ?? $bookInterface->chapterVerseCount($chapter);
+        
+        // Handle ChapterRange object
+        if ($chapter instanceof ChapterRange) {
+            $startChapter = $chapter->getStart();
+            $endChapter = $chapter->getEnd();
+            $fromVerse = 1;
+            $toVerse = $bookInterface->chapterVerseCount($endChapter);
+        } else {
+            // Handle traditional parameter syntax
+            $startChapter = $chapter;
+            $endChapter = $chapterEnd ?? $chapter;
+            $fromVerse = $this->resolveVerse($verse) ?? 1;
+            $toVerse = $this->resolveVerse($toVerse) ?? $bookInterface->chapterVerseCount($endChapter);
+        }
 
         $this->currentRange = new ScriptureRange(
             $bookInterface,
-            $chapter,
-            $chapter,
+            $startChapter,
+            $endChapter,
             $fromVerse,
             $toVerse
         );
@@ -58,7 +71,8 @@ class ScriptureRangeBuilder
 
     public function without(
         mixed $book, 
-        int $chapter, 
+        ChapterRange|int $chapter,
+        ?int $chapterEnd = null,
         mixed $verse = null, 
         mixed $toVerse = null
     ): self {
@@ -68,15 +82,26 @@ class ScriptureRangeBuilder
 
         $bookInterface = $this->resolveBook($book);
         
-        $fromVerse = $this->resolveVerse($verse) ?? 1;
-        $toVerse = $this->resolveVerse($toVerse) ?? $fromVerse;
+        // Handle ChapterRange object
+        if ($chapter instanceof ChapterRange) {
+            $startChapter = $chapter->getStart();
+            $endChapter = $chapter->getEnd();
+            $fromVerse = 1;
+            $toVerse = $bookInterface->chapterVerseCount($endChapter);
+        } else {
+            // Handle traditional parameter syntax
+            $startChapter = $chapter;
+            $endChapter = $chapterEnd ?? $chapter;
+            $fromVerse = $this->resolveVerse($verse) ?? 1;
+            $toVerse = $this->resolveVerse($toVerse) ?? $fromVerse;
+        }
 
         // Verify exclusion is in same book as current range
         if ($bookInterface->name() !== $this->currentRange->book()->name()) {
             throw new InvalidArgumentException('Exclusion must be in the same book as the current range');
         }
 
-        $this->currentRange->addExclusion($chapter, $chapter, $fromVerse, $toVerse);
+        $this->currentRange->addExclusion($startChapter, $endChapter, $fromVerse, $toVerse);
         
         return $this;
     }

@@ -10,31 +10,35 @@ composer require bkuhl/scripture-ranges
 
 ## Creating Ranges (Recommended)
 
-Use the `ScriptureRangeBuilder` for a clean, readable API:
+Use the `ScriptureRangeBuilder` with multiple syntax options:
 
 ```php
 use BKuhl\ScriptureRanges\ScriptureRangeBuilder;
+use BKuhl\ScriptureRanges\ChapterRange;
 
-// Create multiple ranges with exclusions
 $builder = new ScriptureRangeBuilder([$myBookResolver]);
+
+// 1. Traditional parameter syntax
 $collection = $builder
     ->with(BookEnum::JOHN, chapter: 3, verse: 1, toVerse: 36)
     ->without(BookEnum::JOHN, chapter: 3, verse: 16, toVerse: 17)
-    ->without(BookEnum::JOHN, chapter: 3, verse: 22)
-    ->with('Matthew', chapter: 5, verse: 1, toVerse: 48)     // String book
-    ->without('Matthew', chapter: 5, verse: 10, toVerse: 15)
-    ->with(42, chapter: 2, verse: 8, toVerse: 20)           // Book by position
-    ->build(); // Returns RangeCollection
-
-// Single range with defaults
-$collection = $builder
-    ->with('John', chapter: 3)                              // Verse 1 to end of chapter
     ->build();
 
-// Specific verse range
+// 2. Chapter range syntax
 $collection = $builder
-    ->with($johnBook, chapter: 3, verse: 16, toVerse: 17)
+    ->with(BookEnum::JOHN, chapter: 3, chapterEnd: 5)      // Multiple chapters
+    ->with('Matthew', chapter: 5, verse: 1, toVerse: 48)   // Mixed with verse ranges
     ->build();
+
+// 3. ChapterRange object syntax (cleanest for chapter ranges!)
+$collection = $builder
+    ->with(BookEnum::JOHN, ChapterRange::range(3, 5))      // Chapters 3-5
+    ->with('Matthew', chapter: 5, verse: 1, toVerse: 48)   // Use traditional syntax for verses
+    ->without(BookEnum::JOHN, chapter: 3, verse: 16)       // Use traditional syntax for single verses
+    ->build();
+
+// ChapterRange factory method:
+ChapterRange::range(3, 5)             // Chapters 3-5 (full chapters only)
 ```
 
 ## Book Resolvers
@@ -99,4 +103,25 @@ $json = $collection->toJson();
 //   "id": "morning-plan-456", 
 //   "ranges": [...]
 // }
+```
+
+## ChapterRange Quick Example
+
+For working with chapter ranges, use the `ChapterRange` class:
+
+```php
+use BKuhl\ScriptureRanges\ChapterRange;
+
+// Create a chapter range
+$range = ChapterRange::range(3, 5);  // Chapters 3-5
+
+// Get start and end chapters
+$start = $range->getStart();  // 3
+$end = $range->getEnd();      // 5
+
+// Use with ScriptureRangeBuilder
+$collection = $builder
+    ->with($book, ChapterRange::range(1, 3))    // Full chapters 1-3
+    ->with($book, chapter: 4, verse: 1, toVerse: 10)  // Specific verses
+    ->build();
 ```
