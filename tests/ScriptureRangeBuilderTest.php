@@ -271,4 +271,316 @@ class ScriptureRangeBuilderTest extends TestCase
         
         $builder->with('john', chapter: 3, verse: 16);
     }
+
+    public function testWithChapterRange(): void
+    {
+        $builder = new ScriptureRangeBuilder([new TestBookResolver()]);
+        $chapterRange = \BKuhl\ScriptureRanges\ChapterRange::range(3, 5);
+        
+        $collection = $builder
+            ->with('john', $chapterRange)
+            ->build();
+        
+        $this->assertInstanceOf(RangeCollection::class, $collection);
+        $ranges = $collection->getRanges();
+        $this->assertCount(1, $ranges);
+        
+        $range = $ranges[0];
+        $this->assertEquals('John', $range->book()->name());
+        $this->assertEquals(3, $range->startChapter());
+        $this->assertEquals(5, $range->endChapter());
+        $this->assertEquals(1, $range->startVerse());
+        $this->assertEquals(47, $range->endVerse()); // MockBook::john() chapter 5 has 47 verses
+    }
+
+    public function testWithChapterRangeAndTraditionalSyntax(): void
+    {
+        $builder = new ScriptureRangeBuilder([new TestBookResolver()]);
+        $chapterRange = \BKuhl\ScriptureRanges\ChapterRange::range(1, 2);
+        
+        $collection = $builder
+            ->with('john', $chapterRange)                               // Full chapters 1-2
+            ->with('john', chapter: 3, verse: 16, toVerse: 17)         // Specific verses
+            ->build();
+        
+        $this->assertInstanceOf(RangeCollection::class, $collection);
+        $ranges = $collection->getRanges();
+        $this->assertCount(2, $ranges);
+        
+        // First range: chapters 1-2
+        $range1 = $ranges[0];
+        $this->assertEquals(1, $range1->startChapter());
+        $this->assertEquals(2, $range1->endChapter());
+        $this->assertEquals(1, $range1->startVerse());
+        $this->assertEquals(25, $range1->endVerse()); // MockBook::john() chapter 2 has 25 verses
+        
+        // Second range: chapter 3, verses 16-17
+        $range2 = $ranges[1];
+        $this->assertEquals(3, $range2->startChapter());
+        $this->assertEquals(3, $range2->endChapter());
+        $this->assertEquals(16, $range2->startVerse());
+        $this->assertEquals(17, $range2->endVerse());
+    }
+
+    public function testWithoutChapterRange(): void
+    {
+        $builder = new ScriptureRangeBuilder([new TestBookResolver()]);
+        $mainRange = \BKuhl\ScriptureRanges\ChapterRange::range(1, 5);
+        $exclusionRange = \BKuhl\ScriptureRanges\ChapterRange::range(3, 3);
+        
+        $collection = $builder
+            ->with('john', $mainRange)
+            ->without('john', $exclusionRange)
+            ->build();
+        
+        $ranges = $collection->getRanges();
+        $this->assertCount(1, $ranges);
+        
+        $range = $ranges[0];
+        $this->assertEquals(1, $range->startChapter());
+        $this->assertEquals(5, $range->endChapter());
+        
+        // Should have one exclusion for chapter 3
+        $exclusions = $range->exclusions();
+        $this->assertCount(1, $exclusions);
+        $this->assertEquals(3, $exclusions[0]['startChapter']);
+        $this->assertEquals(3, $exclusions[0]['endChapter']);
+        $this->assertEquals(1, $exclusions[0]['startVerse']);
+        $this->assertEquals(36, $exclusions[0]['endVerse']); // MockBook::john() chapter 3 has 36 verses
+    }
+
+    public function testChapterRangeSingleChapter(): void
+    {
+        $builder = new ScriptureRangeBuilder([new TestBookResolver()]);
+        $chapterRange = \BKuhl\ScriptureRanges\ChapterRange::range(3, 3);
+        
+        $collection = $builder
+            ->with('john', $chapterRange)
+            ->build();
+        
+        $ranges = $collection->getRanges();
+        $range = $ranges[0];
+        
+        $this->assertEquals(3, $range->startChapter());
+        $this->assertEquals(3, $range->endChapter());
+        $this->assertEquals(1, $range->startVerse());
+        $this->assertEquals(36, $range->endVerse()); // Full chapter 3
+    }
+
+    public function testChapterRangeWithVerseParameters(): void
+    {
+        $builder = new ScriptureRangeBuilder([new TestBookResolver()]);
+        $chapterRange = \BKuhl\ScriptureRanges\ChapterRange::range(3, 5);
+        
+        $collection = $builder
+            ->with('john', $chapterRange, verse: 10, toVerse: 25)
+            ->build();
+        
+        $ranges = $collection->getRanges();
+        $range = $ranges[0];
+        
+        $this->assertEquals(3, $range->startChapter());
+        $this->assertEquals(5, $range->endChapter());
+        $this->assertEquals(10, $range->startVerse()); // verse parameter used
+        $this->assertEquals(25, $range->endVerse());   // toVerse parameter used
+    }
+
+    public function testChapterRangeWithOnlyStartVerse(): void
+    {
+        $builder = new ScriptureRangeBuilder([new TestBookResolver()]);
+        $chapterRange = \BKuhl\ScriptureRanges\ChapterRange::range(3, 4);
+        
+        $collection = $builder
+            ->with('john', $chapterRange, verse: 5)
+            ->build();
+        
+        $ranges = $collection->getRanges();
+        $range = $ranges[0];
+        
+        $this->assertEquals(3, $range->startChapter());
+        $this->assertEquals(4, $range->endChapter());
+        $this->assertEquals(5, $range->startVerse());  // verse parameter used
+        $this->assertEquals(54, $range->endVerse());   // Default to end of last chapter (chapter 4 has 54 verses)
+    }
+
+    public function testChapterRangeWithOnlyEndVerse(): void
+    {
+        $builder = new ScriptureRangeBuilder([new TestBookResolver()]);
+        $chapterRange = \BKuhl\ScriptureRanges\ChapterRange::range(3, 3);
+        
+        $collection = $builder
+            ->with('john', $chapterRange, toVerse: 20)
+            ->build();
+        
+        $ranges = $collection->getRanges();
+        $range = $ranges[0];
+        
+        $this->assertEquals(3, $range->startChapter());
+        $this->assertEquals(3, $range->endChapter());
+        $this->assertEquals(1, $range->startVerse());   // Default to 1
+        $this->assertEquals(20, $range->endVerse());    // toVerse parameter used
+    }
+
+    public function testChapterRangeWithVerseParametersInExclusion(): void
+    {
+        $builder = new ScriptureRangeBuilder([new TestBookResolver()]);
+        $mainRange = \BKuhl\ScriptureRanges\ChapterRange::range(1, 5);
+        $exclusionRange = \BKuhl\ScriptureRanges\ChapterRange::range(3, 3);
+        
+        $collection = $builder
+            ->with('john', $mainRange)
+            ->without('john', $exclusionRange, verse: 10, toVerse: 20)
+            ->build();
+        
+        $ranges = $collection->getRanges();
+        $range = $ranges[0];
+        
+        // Should have one exclusion with specific verse range
+        $exclusions = $range->exclusions();
+        $this->assertCount(1, $exclusions);
+        $this->assertEquals(3, $exclusions[0]['startChapter']);
+        $this->assertEquals(3, $exclusions[0]['endChapter']);
+        $this->assertEquals(10, $exclusions[0]['startVerse']);  // verse parameter used
+        $this->assertEquals(20, $exclusions[0]['endVerse']);    // toVerse parameter used
+    }
+
+    public function testChapterRangeVerseAppliesToFirstChapter(): void
+    {
+        $builder = new ScriptureRangeBuilder([new TestBookResolver()]);
+        $chapterRange = \BKuhl\ScriptureRanges\ChapterRange::range(2, 4);
+        
+        $collection = $builder
+            ->with('john', $chapterRange, verse: 15)
+            ->build();
+        
+        $ranges = $collection->getRanges();
+        $range = $ranges[0];
+        
+        // Verify the range spans chapters 2-4
+        $this->assertEquals(2, $range->startChapter());
+        $this->assertEquals(4, $range->endChapter());
+        
+        // Starting verse (15) should apply to first chapter (2)
+        $this->assertEquals(15, $range->startVerse());
+        
+        // Should default to end of last chapter (4) - John chapter 4 has 54 verses
+        $this->assertEquals(54, $range->endVerse());
+    }
+
+    public function testChapterRangeToVerseAppliesToLastChapter(): void
+    {
+        $builder = new ScriptureRangeBuilder([new TestBookResolver()]);
+        $chapterRange = \BKuhl\ScriptureRanges\ChapterRange::range(2, 4);
+        
+        $collection = $builder
+            ->with('john', $chapterRange, toVerse: 30)
+            ->build();
+        
+        $ranges = $collection->getRanges();
+        $range = $ranges[0];
+        
+        // Verify the range spans chapters 2-4
+        $this->assertEquals(2, $range->startChapter());
+        $this->assertEquals(4, $range->endChapter());
+        
+        // Should default to verse 1 of first chapter (2)
+        $this->assertEquals(1, $range->startVerse());
+        
+        // Ending verse (30) should apply to last chapter (4)
+        $this->assertEquals(30, $range->endVerse());
+    }
+
+    public function testChapterRangeBothVerseParametersApplyToRespectiveChapters(): void
+    {
+        $builder = new ScriptureRangeBuilder([new TestBookResolver()]);
+        $chapterRange = \BKuhl\ScriptureRanges\ChapterRange::range(1, 3);
+        
+        $collection = $builder
+            ->with('john', $chapterRange, verse: 10, toVerse: 25)
+            ->build();
+        
+        $ranges = $collection->getRanges();
+        $range = $ranges[0];
+        
+        // Verify the range spans chapters 1-3
+        $this->assertEquals(1, $range->startChapter());
+        $this->assertEquals(3, $range->endChapter());
+        
+        // Starting verse (10) applies to first chapter (1)
+        $this->assertEquals(10, $range->startVerse());
+        
+        // Ending verse (25) applies to last chapter (3)
+        $this->assertEquals(25, $range->endVerse());
+    }
+
+    public function testChapterRangeDefaultsWithNoVerseParameters(): void
+    {
+        $builder = new ScriptureRangeBuilder([new TestBookResolver()]);
+        $chapterRange = \BKuhl\ScriptureRanges\ChapterRange::range(2, 5);
+        
+        $collection = $builder
+            ->with('john', $chapterRange)
+            ->build();
+        
+        $ranges = $collection->getRanges();
+        $range = $ranges[0];
+        
+        // Verify the range spans chapters 2-5
+        $this->assertEquals(2, $range->startChapter());
+        $this->assertEquals(5, $range->endChapter());
+        
+        // Should default to verse 1 of first chapter (2)
+        $this->assertEquals(1, $range->startVerse());
+        
+        // Should default to end of last chapter (5) - John chapter 5 has 47 verses
+        $this->assertEquals(47, $range->endVerse());
+    }
+
+    public function testChapterRangeSingleChapterWithVerseParameters(): void
+    {
+        $builder = new ScriptureRangeBuilder([new TestBookResolver()]);
+        $chapterRange = \BKuhl\ScriptureRanges\ChapterRange::range(3, 3);
+        
+        $collection = $builder
+            ->with('john', $chapterRange, verse: 16, toVerse: 17)
+            ->build();
+        
+        $ranges = $collection->getRanges();
+        $range = $ranges[0];
+        
+        // Single chapter range
+        $this->assertEquals(3, $range->startChapter());
+        $this->assertEquals(3, $range->endChapter());
+        
+        // Both verses apply to the same chapter (3)
+        $this->assertEquals(16, $range->startVerse());
+        $this->assertEquals(17, $range->endVerse());
+    }
+
+    public function testChapterRangeVersusTraditionalSyntaxBehaviorConsistency(): void
+    {
+        $builder1 = new ScriptureRangeBuilder([new TestBookResolver()]);
+        $builder2 = new ScriptureRangeBuilder([new TestBookResolver()]);
+        
+        // ChapterRange syntax
+        $chapterRange = \BKuhl\ScriptureRanges\ChapterRange::range(2, 4);
+        $collection1 = $builder1
+            ->with('john', $chapterRange, verse: 10, toVerse: 25)
+            ->build();
+        
+        // Traditional syntax
+        $collection2 = $builder2
+            ->with('john', chapter: 2, chapterEnd: 4, verse: 10, toVerse: 25)
+            ->build();
+        
+        $range1 = $collection1->getRanges()[0];
+        $range2 = $collection2->getRanges()[0];
+        
+        // Both should produce identical results
+        $this->assertEquals($range1->startChapter(), $range2->startChapter());
+        $this->assertEquals($range1->endChapter(), $range2->endChapter());
+        $this->assertEquals($range1->startVerse(), $range2->startVerse());
+        $this->assertEquals($range1->endVerse(), $range2->endVerse());
+        $this->assertEquals($range1->reference(), $range2->reference());
+    }
 }
