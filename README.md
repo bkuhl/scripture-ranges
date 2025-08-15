@@ -38,7 +38,7 @@ $collection = $builder
     ->build();
 
 // ChapterRange factory method:
-ChapterRange::range(3, 5)             // Chapters 3-5 (full chapters only)
+ChapterRange::range(3, 5)             // Chapters 3-5 (full chapters)
 ```
 
 ## Book Resolvers

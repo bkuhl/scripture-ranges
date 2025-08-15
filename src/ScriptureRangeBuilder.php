@@ -42,18 +42,26 @@ class ScriptureRangeBuilder
     ): self {
         $bookInterface = $this->resolveBook($book);
         
-        // Handle ChapterRange object
+        // Determine chapter range
         if ($chapter instanceof ChapterRange) {
             $startChapter = $chapter->getStart();
             $endChapter = $chapter->getEnd();
-            $fromVerse = 1;
-            $toVerse = $bookInterface->chapterVerseCount($endChapter);
         } else {
-            // Handle traditional parameter syntax
             $startChapter = $chapter;
             $endChapter = $chapterEnd ?? $chapter;
-            $fromVerse = $this->resolveVerse($verse) ?? 1;
-            $toVerse = $this->resolveVerse($toVerse) ?? $bookInterface->chapterVerseCount($endChapter);
+        }
+        
+        // Resolve verse parameters
+        $fromVerse = $this->resolveVerse($verse) ?? 1;
+        $resolvedToVerse = $this->resolveVerse($toVerse);
+        
+        // Determine ending verse based on context
+        if ($resolvedToVerse !== null) {
+            $toVerse = $resolvedToVerse;
+        } else {
+            // Default to end of the target chapter
+            $targetChapter = ($chapter instanceof ChapterRange) ? $endChapter : $endChapter;
+            $toVerse = $bookInterface->chapterVerseCount($targetChapter);
         }
 
         $this->currentRange = new ScriptureRange(
@@ -82,18 +90,28 @@ class ScriptureRangeBuilder
 
         $bookInterface = $this->resolveBook($book);
         
-        // Handle ChapterRange object
+        // Determine chapter range
         if ($chapter instanceof ChapterRange) {
             $startChapter = $chapter->getStart();
             $endChapter = $chapter->getEnd();
-            $fromVerse = 1;
-            $toVerse = $bookInterface->chapterVerseCount($endChapter);
         } else {
-            // Handle traditional parameter syntax
             $startChapter = $chapter;
             $endChapter = $chapterEnd ?? $chapter;
-            $fromVerse = $this->resolveVerse($verse) ?? 1;
-            $toVerse = $this->resolveVerse($toVerse) ?? $fromVerse;
+        }
+        
+        // Resolve verse parameters
+        $fromVerse = $this->resolveVerse($verse) ?? 1;
+        $resolvedToVerse = $this->resolveVerse($toVerse);
+        
+        // Determine ending verse based on context
+        if ($resolvedToVerse !== null) {
+            $toVerse = $resolvedToVerse;
+        } else {
+            // For exclusions, default to end of range or single verse
+            $targetChapter = ($chapter instanceof ChapterRange) ? $endChapter : $endChapter;
+            $toVerse = ($chapter instanceof ChapterRange) 
+                ? $bookInterface->chapterVerseCount($targetChapter)
+                : $fromVerse; // For traditional syntax, default to single verse exclusion
         }
 
         // Verify exclusion is in same book as current range
