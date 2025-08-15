@@ -13,6 +13,32 @@ class RangeCollection
      */
     private array $ranges = [];
 
+    public function __construct(
+        private ?string $id = null,
+        private ?string $name = null
+    ) {
+    }
+
+    public function getName(): ?string
+    {
+        return $this->name;
+    }
+
+    public function setName(?string $name): void
+    {
+        $this->name = $name;
+    }
+
+    public function getId(): ?string
+    {
+        return $this->id;
+    }
+
+    public function setId(?string $id): void
+    {
+        $this->id = $id;
+    }
+
     public function addRange(ScriptureRange $range): void
     {
         $this->ranges[] = $range;
@@ -52,7 +78,19 @@ class RangeCollection
 
     public function toArray(): array
     {
-        return array_map(fn($range) => $range->toArray(), $this->ranges);
+        $data = [
+            'ranges' => array_map(fn($range) => $range->toArray(), $this->ranges)
+        ];
+
+        if ($this->name !== null) {
+            $data['name'] = $this->name;
+        }
+
+        if ($this->id !== null) {
+            $data['id'] = $this->id;
+        }
+
+        return $data;
     }
 
     public function toJson(): string
