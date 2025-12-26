@@ -76,6 +76,64 @@ class RangeCollection
         );
     }
 
+    /**
+     * Check if this collection has at least N consecutive full chapters across all ranges.
+     * 
+     * Checks for consecutive chapters within ranges and across ranges if they're in the same
+     * book and the ranges are consecutive (e.g., Genesis 1-2 in one range, Genesis 3-4 in another).
+     * 
+     * @param int $minimumCount Minimum number of consecutive full chapters required
+     * @return bool True if at least N consecutive full chapters are found across ranges
+     */
+    public function hasConsecutiveChapters(int $minimumCount): bool
+    {
+        if ($minimumCount <= 0 || empty($this->ranges)) {
+            return false;
+        }
+
+        // Group ranges by book
+        $rangesByBook = [];
+        foreach ($this->ranges as $range) {
+            $bookName = $range->book()->name();
+            if (!isset($rangesByBook[$bookName])) {
+                $rangesByBook[$bookName] = [];
+            }
+            $rangesByBook[$bookName][] = $range;
+        }
+
+        // Check each book's ranges for consecutive chapters
+        foreach ($rangesByBook as $bookRanges) {
+            if ($this->checkBookRangesForConsecutiveChapters($bookRanges, $minimumCount)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if ranges in the same book have consecutive chapters across them.
+     * 
+     * Uses ScriptureRangeCombiner to combine ranges first, then checks for consecutive chapters.
+     * This approach is preferred because:
+     * - It ensures correctness by properly handling overlapping ranges, gaps, and exclusions
+     * - It reuses well-tested combination logic
+     * - It's simpler than implementing custom multi-range chapter checking
+     * - Performance is comparable since both approaches iterate through chapters
+     */
+    private function checkBookRangesForConsecutiveChapters(array $ranges, int $minimumCount): bool
+    {
+        if (count($ranges) === 1) {
+            // Single range - use its own method
+            return $ranges[0]->hasConsecutiveChapters($minimumCount);
+        }
+
+        // Combine all ranges into a single range, then check for consecutive chapters
+        // The combiner properly handles overlaps, gaps, and exclusions
+        $combined = ScriptureRange::combine($ranges);
+        return $combined->hasConsecutiveChapters($minimumCount);
+    }
+
     public function toArray(): array
     {
         $data = [
