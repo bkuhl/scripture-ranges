@@ -454,12 +454,15 @@ class ScriptureRangeTest extends TestCase
 
     public function testHasConsecutiveChaptersWithPartialChapter(): void
     {
-        // Range doesn't include all of chapter 2
+        // Range: Genesis 1:1 to Genesis 3:15
+        // Chapter 1 is full, chapter 2 is full (middle chapter, all verses included), chapter 3 is partial (ends at verse 15, but has 24 verses)
         $range = new ScriptureRange(MockBook::genesis(), 1, 3, 1, 15);
         
-        // Chapter 1 is full, chapter 2 is partial (ends at verse 15 but chapter has 25 verses), chapter 3 is partial (ends at verse 15)
-        $this->assertFalse($range->hasConsecutiveChapters(2));
+        // Chapters 1 and 2 are consecutive full chapters
+        $this->assertTrue($range->hasConsecutiveChapters(2));
         $this->assertTrue($range->hasConsecutiveChapters(1));
+        // But not 3 consecutive (chapter 3 is partial)
+        $this->assertFalse($range->hasConsecutiveChapters(3));
     }
 
     public function testHasConsecutiveChaptersWithExclusion(): void
