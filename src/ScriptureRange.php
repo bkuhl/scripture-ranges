@@ -88,6 +88,20 @@ class ScriptureRange
         ];
     }
 
+    /**
+     * Add an exclusion without validation (used internally for combine operation)
+     * @internal
+     */
+    public function addExclusionUnsafe(int $startChapter, int $endChapter, int $startVerse, int $endVerse): void
+    {
+        $this->exclusions[] = [
+            'startChapter' => $startChapter,
+            'endChapter' => $endChapter,
+            'startVerse' => $startVerse,
+            'endVerse' => $endVerse
+        ];
+    }
+
     public function removeExclusion(int $startChapter, int $endChapter, int $startVerse, int $endVerse): void
     {
         $this->exclusions = array_filter(
@@ -256,6 +270,51 @@ class ScriptureRange
     }
 
     /**
+     * Combine multiple ranges into a single range.
+     * 
+     * All ranges must be in the same book. The resulting range covers the union of all ranges.
+     * A verse is included in the combined range if it's included in at least one of the source ranges.
+     * 
+     * @param ScriptureRange[] $ranges Array of ranges to combine (must all be same book)
+     * @return self A new combined range
+     * @throws \InvalidArgumentException If ranges are empty or not all same book
+     */
+    public static function combine(array $ranges): self
+    {
+        $combiner = new ScriptureRangeCombiner();
+        return $combiner->combine($ranges);
+    }
+
+    /**
+     * Check if a verse is included in a range (considering boundaries and exclusions)
+     */
+    private function isVerseIncludedInRange(int $chapter, int $verse, self $range): bool
+    {
+        // Check if verse is within range boundaries
+        if ($chapter < $range->startChapter() || $chapter > $range->endChapter()) {
+            return false;
+        }
+
+        if ($chapter === $range->startChapter() && $verse < $range->startVerse()) {
+            return false;
+        }
+
+        if ($chapter === $range->endChapter() && $verse > $range->endVerse()) {
+            return false;
+        }
+
+        // Check if verse is in any exclusion of this range
+        foreach ($range->exclusions() as $exclusion) {
+            if ($this->isVerseInRange($chapter, $verse, $exclusion)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+
+    /**
      * Check if a verse is within a given range
      */
     private function isVerseInRange(int $chapter, int $verse, array $range): bool
@@ -276,4 +335,28 @@ class ScriptureRange
 
         return true;
     }
+
+    /**
+     * Check if this range has at least N consecutive full chapters.
+     * 
+     * A chapter is considered "full" if all verses from 1 to the chapter's 
+     * total verse count are included in the range (accounting for exclusions).
+     * 
+     * @param int $minimumCount Minimum number of consecutive full chapters required
+     * @return bool True if at least N consecutive full chapters are found
+     */
+    public function hasConsecutiveChapters(int $minimumCount): bool
+    {
+        $validator = new ConsecutiveChapterValidator(
+            $this->book,
+            $this->startChapter,
+            $this->endChapter,
+            $this->startVerse,
+            $this->endVerse,
+            $this->exclusions
+        );
+        
+        return $validator->hasConsecutiveChapters($minimumCount);
+    }
+
 } 

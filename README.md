@@ -125,3 +125,35 @@ $collection = $builder
     ->with($book, chapter: 4, verse: 1, toVerse: 10)  // Specific verses
     ->build();
 ```
+
+## Combining Ranges
+
+Combine multiple ranges in the same book into a single range:
+
+```php
+use BKuhl\ScriptureRanges\ScriptureRange;
+
+$range1 = new ScriptureRange($book, 1, 2, 1, 25);
+$range2 = new ScriptureRange($book, 3, 4, 1, 24);
+
+$combined = ScriptureRange::combine([$range1, $range2]);
+// Result: Genesis 1-4 with gaps between ranges excluded
+```
+
+## Checking Consecutive Chapters
+
+Check if ranges contain a minimum number of consecutive full chapters:
+
+```php
+// Check a single range
+$range = new ScriptureRange($book, 1, 3, 1, 24);
+$range->hasConsecutiveChapters(3); // true if chapters 1, 2, 3 are all full
+
+// Check across multiple ranges in a collection
+$collection = (new ScriptureRangeBuilder())
+    ->with($book, chapter: 1, chapterEnd: 2)
+    ->with($book, chapter: 3, chapterEnd: 4)
+    ->build();
+
+$collection->hasConsecutiveChapters(4); // true if chapters 1-4 are all full across ranges
+```

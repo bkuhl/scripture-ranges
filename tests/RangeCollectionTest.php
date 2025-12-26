@@ -6,6 +6,7 @@ namespace BKuhl\ScriptureRanges\Tests;
 
 use BKuhl\ScriptureRanges\RangeCollection;
 use BKuhl\ScriptureRanges\ScriptureRange;
+use BKuhl\ScriptureRanges\ScriptureRangeBuilder;
 use BKuhl\ScriptureRanges\Tests\Mocks\MockBook;
 use BKuhl\ScriptureRanges\Tests\Mocks\MockVerse;
 use PHPUnit\Framework\TestCase;
@@ -627,5 +628,20 @@ class RangeCollectionTest extends TestCase
         $this->assertArrayHasKey('id', $decoded);
         $this->assertEquals('', $decoded['name']);
         $this->assertEquals('', $decoded['id']);
+    }
+
+    public function testHasConsecutiveChaptersAcrossMultipleRanges(): void
+    {
+        // Genesis 1-2 in one range, Genesis 3-4 in another range
+        // Should detect 4 consecutive chapters across the ranges
+        $collection = (new ScriptureRangeBuilder())
+            ->with(MockBook::genesis(), chapter: 1, chapterEnd: 2)
+            ->with(MockBook::genesis(), chapter: 3, chapterEnd: 4)
+            ->build();
+
+        $this->assertTrue($collection->hasConsecutiveChapters(4));
+        $this->assertTrue($collection->hasConsecutiveChapters(3));
+        $this->assertTrue($collection->hasConsecutiveChapters(2));
+        $this->assertFalse($collection->hasConsecutiveChapters(5));
     }
 } 
